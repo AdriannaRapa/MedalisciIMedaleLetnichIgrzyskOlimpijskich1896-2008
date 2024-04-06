@@ -1,0 +1,412 @@
+---
+title: "Medallists and medals of the 1896-2008 Summer Olympics"
+author: "Radomska Małgorzata, Rapa Adrianna"
+date: "2023-06-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+## Preparation of data for analysis
+
+setwd("C:/Users/gosia/Desktop/Studia/Semestr II/Programowanie w R - projekt")
+
+library(openxlsx)
+
+medals <- read.xlsx("Summer_Olympic_medallists_1896-2008.xlsx")
+
+unique_rows <- !duplicated(medals$Athlete)
+medallists <- medals[unique_rows, ]
+
+countries <- read.xlsx("Summer_Olympic_medallists_1896-2008.xlsx", 4)
+head(countries1 <- countries[,1:2])
+
+Int.Olympic.Committee.code <- c("ANZ", "BOH", "BWI","EUA", "EUN", 
+                                "FRG", "GDR", "IOP", "ROU", "RU1", 
+                                "SRB", "TCH", "URS", "YUG", "ZZX")
+country_names <- c("Australasia", "Bohemia", "British West Indies", 
+             "United Team of Germany","Unified Team", "West Germany", 
+             "East Germany", "Independent Olympics Participants",
+              "Romania", "Russian Empire", "Serbia", "Czechoslovakia",
+             "Soviet Union","Yugoslavia", "Mixed team")
+
+country_codes <- data.frame(country_names, Int.Olympic.Committee.code)
+names(country_codes)[1] <- "Country"
+
+countries2 <- rbind(countries1, country_codes)
+
+for (i in 1:length(medals$NOC)){
+  for (j in 1:length(countries2$Country)){
+    if (medals$NOC[i]==countries2$Int.Olympic.Committee.code[j])
+    {
+      medals$NOC[i] <- countries2$Country[j]
+    }
+  }
+}
+```
+
+### Number of medals from the countries from 1986 to 2008
+
+```{r}
+country <- table(medals$NOC)
+country1 <- as.data.frame(country)
+
+index <- which(country1$Freq >= 1000)
+country2 <- country1[index, ]
+
+library(ggplot2)
+
+colour <- rep(c("dodgerblue2", "darkgoldenrod1", 
+               "black", "springgreen3", "brown2"), length=nrow(country2))
+
+country2$Var1 <- as.character(country2$Var1)
+
+ggplot(country2, aes(x = Var1, y = Freq)) +
+  geom_segment(aes(x = Var1, xend = Var1, y = 0, yend = Freq), color = colour) +
+  geom_point(aes(color = Var1), size = 4) +
+  coord_flip() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    panel.border = element_blank(),
+    axis.ticks.y = element_blank(),
+    legend.position = "none"
+  ) +
+  geom_text(aes(label = Freq, group = Var1), hjust = -0.75, vjust = 0.5) +
+  labs(x = "Country", y = "Number of medals", 
+       title = "Number of medals from the countries from 1986 to 2008") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = colour)
+```
+
+
+### The number of medallists whose names begin on consecutive letters of the alphabet
+
+```{r}
+letter <- c()
+
+for (i in 1:nrow(medallists)){
+  letter <- c(letter, substr(medallists$Athlete[i], 1, 1))
+}
+
+medallists_copy <- medallists
+
+medallists_copy <- cbind(medallists_copy, letter)
+
+gold <- medallists_copy[medallists_copy$Medal=="Gold", ]
+silver <- medallists_copy[medallists_copy$Medal=="Silver", ]
+bronze <- medallists_copy[medallists_copy$Medal=="Bronze", ]
+
+gold_letter <- table(gold$letter)
+gold_letter1 <- as.data.frame(gold_letter)
+colnames(gold_letter1) <- c("Letter", "Gold")
+
+silver_letter <- table(silver$letter)
+silver_letter1 <- as.data.frame(silver_letter)
+colnames(silver_letter1) <- c("Letter", "Silver")
+
+bronze_letter <- table(bronze$letter)
+bronze_letter1 <- as.data.frame(bronze_letter)
+colnames(bronze_letter1) <- c("Letter", "Bronze")
+
+all_colours_letter <- cbind(gold_letter1, silver_letter1[,2], bronze_letter1[,2])
+colnames(all_colours_letter) <- c("Letter", "Gold", "Silver", "Bronze")
+
+suppressMessages(suppressWarnings(library(tidyverse)))
+
+letter_long <- all_colours_letter %>% gather(Medal, Number, -Letter)
+
+ggplot(letter_long, aes(fill=Medal, y=Number, x=Letter)) + 
+  geom_bar(position="dodge", stat="identity", width = 0.4) +
+  scale_fill_manual(values = c("Gold" = "gold2", 
+                               "Silver" = "grey", 
+                               "Bronze" = "chocolate3")) +
+  labs(x = "Letter", y = "Number of medals", 
+       title = "The number of medallists whose names begin on consecutive letters of the alphabet") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+### Number of Polish medallists in consecutive years
+
+```{r}
+pol <- medals[medals$NOC=="Poland", ]
+
+pol_gold <- pol[pol$Medal=="Gold", ]
+pol_silver <- pol[pol$Medal=="Silver", ]
+pol_bronze <- pol[pol$Medal=="Bronze", ]
+
+pol_g <- table(pol_gold$Edition)
+pol_g1 <- as.data.frame(pol_g)
+colnames(pol_g1) <- c("Year", "Gold")
+
+pol_s <- table(pol_silver$Edition)
+pol_s1 <- as.data.frame(pol_s)
+colnames(pol_s1) <- c("Year", "Silver")
+
+pol_b <- table(pol_bronze$Edition)
+pol_b1 <- as.data.frame(pol_b)
+colnames(pol_b1) <- c("Year", "Bronze")
+
+pol_medals <- merge(pol_b1, pol_s1, by="Year", all.x = TRUE, all.y = TRUE)
+pol_medals1 <- merge(pol_medals, pol_g1, by="Year", all.x = TRUE, all.y = TRUE)
+
+pol_medals1$Year <- as.numeric(as.character(pol_medals1$Year))
+
+pol_medals2 <- pol_medals1[(order(pol_medals1$Year)), ]
+
+pol_medals2$Year <- as.character(pol_medals2$Year)
+
+pol_medals2[is.na(pol_medals2)] <- 0
+
+pol_medals_long <- pol_medals2 %>% gather(Medal, Number, -Year)
+
+ggplot(pol_medals_long, aes(fill=Medal, y=Number, x=Year)) + 
+  geom_bar(position="stack", stat="identity", width = 0.5) +
+  geom_text(aes(label=ifelse(Number != 0, Number, "")), 
+            position=position_stack(vjust = 0.5), color="black", size=3) +
+  scale_fill_manual(values = c("Bronze" = "chocolate3", 
+                               "Silver" = "grey", 
+                               "Gold" = "gold2")) +
+  labs(x = "Year", y = "Number of medallists", 
+       title = "Number of Polish medallists in consecutive years")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+### Percentage summary of Polish medallists in each discipline
+
+```{r}
+pol_gold_discipline <- table(pol_gold$Discipline)
+pol_g_discipline <- as.data.frame(pol_gold_discipline)
+colnames(pol_g_discipline) <- c("Discipline", "Gold")
+
+pol_silver_discipline <- table(pol_silver$Discipline)
+pol_s_discipline <- as.data.frame(pol_silver_discipline)
+colnames(pol_s_discipline) <- c("Discipline", "Silver")
+
+pol_bronze_discipline <- table(pol_bronze$Discipline)
+pol_b_discipline <- as.data.frame(pol_bronze_discipline)
+colnames(pol_b_discipline) <- c("Discipline", "Bronze")
+
+pol_discipline <- merge(pol_b_discipline, pol_s_discipline, by="Discipline", all.x = TRUE, all.y = TRUE)
+pol_discipline1 <- merge(pol_discipline, pol_g_discipline, by="Discipline", all.x = TRUE, all.y = TRUE)
+
+pol_discipline1[is.na(pol_discipline1)] <- 0
+
+pol_discipline_long <- pol_discipline1 %>% gather(Medal, Number, -Discipline)
+
+ggplot(pol_discipline_long, aes(fill=Medal, y=Number, x=Discipline)) + 
+  geom_bar(position="fill", stat="identity", width = 0.5) +
+  scale_fill_manual(values = c("Bronze" = "chocolate3", 
+                               "Silver" = "grey", 
+                               "Gold" = "gold2")) +
+  labs(x = "Discipline", y = "Medallists", 
+       title = "Percentage summary of Polish medallists in each discipline")+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Number of medallists at consecutive Olympic Games by gender
+
+```{r}
+
+suppressMessages(suppressWarnings(library(data.table)))
+
+medallists <- as.data.table(medallists)
+
+medallists_gender_count <- medallists[, .N, by = .(Edition, Gender)]
+
+medallists_gender <- dcast(medallists_gender_count, Edition ~ Gender, value.var = "N")
+medallists_gender <- medallists_gender[, .(Edition, Women, Men)]
+
+medallists_gender[is.na(medallists_gender)] <- 0
+
+ggplot(medallists_gender_count, aes(fill = Gender, y = N, x = as.factor(Edition))) +
+  geom_bar(position = "dodge", stat = "identity", width = 0.8) +
+  geom_text(aes(label = N), position = position_dodge(width = 0.8), vjust = -0.5, angle = 90, hjust = 0.5, size = 3) +
+  scale_fill_manual(values = c("Women" = "lightpink", "Men" = "lightblue3")) +
+  labs(x = "Year", y = "Number", 
+       title = "Number of medallists at consecutive Olympic Games by gender") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(breaks = seq(0, max(medallists_gender_count$N), by = 100))
+
+```
+
+### The number of participants who have won a medal in a specific edition in different disciplines
+
+```{r}
+
+selected_columns <- medals %>%
+  select(Edition, Discipline, Athlete, Gender, Event, Medal)
+
+few_medals_won <- data.frame(Edition = medals$Edition,
+                                             Discipline = medals$Discipline,
+                                             Athlete = medals$Athlete,
+                                             Gender = medals$Gender,
+                                             Event = medals$Event,
+                                             Medal = medals$Medal)
+
+repeated <- few_medals_won[duplicated(few_medals_won[, c("Athlete", "Edition", "Medal")]) |
+            duplicated(few_medals_won[, c("Athlete", "Edition", "Medal")], fromLast = TRUE), ]
+
+repeated_sorted <- repeated %>% 
+  arrange(Edition, Athlete)
+
+situation_count <- repeated_sorted %>% 
+  group_by(Edition, Athlete) %>% 
+  count()
+
+participant_count <- situation_count %>%
+  group_by(Edition) %>%
+  summarize(participants_count = n_distinct(Athlete))
+
+participant_count$Edition <- factor(participant_count$Edition)
+
+ggplot(participant_count, aes(x = Edition, y = participants_count, fill = Edition)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis_d() +
+  labs(x = "Edition", y = "Number of participants", fill = "Edition", 
+  title = "The number of participants who have won a medal in a specific edition 
+           in different disciplines") +
+  theme_minimal() +
+  theme(legend.position = "right", legend.title = element_blank(),
+        plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(breaks = seq(0, max(participant_count$participants_count), by = 10),
+                     minor_breaks = seq(0, max(participant_count$participants_count), by = 10),
+                     limits = c(0, 100)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+### Number of situations in which several of the same medals were awarded for identical results for each edition
+
+```{r}
+
+selected_columns <- medals %>%
+  select(Edition, Discipline, Event, Athlete, Medal)
+
+repeated_medals <- selected_columns %>%
+  group_by(Edition, Discipline, Event, Medal) %>%
+  summarise(Number = n()) %>%
+  filter(Number >= 2)
+
+event_count <- repeated_medals %>%
+  group_by(Edition) %>%
+  summarise(event_count = n_distinct(Event))
+
+repeated_color_medals <- repeated_medals
+
+repeated_color_medals$Kolor <- ifelse(repeated_color_medals$Medal == "Gold", "Gold",
+                                      ifelse(repeated_color_medals$Medal == "Silver", "Silver",
+                                             ifelse(repeated_color_medals$Medal == "Bronze", "Bronze", "Other")))
+
+event_count <- repeated_color_medals %>%
+  group_by(Edition) %>%
+  summarise(Number_of_situations = n_distinct(paste(Discipline, Event, Kolor)))
+
+ggplot(event_count, aes(x = Edition, y = Number_of_situations)) +
+  geom_point(size = 3, color = "darkgreen") +
+  scale_x_continuous(breaks = event_count$Edition, labels = event_count$Edition) +
+  labs(title = "Number of situations in which several of the same medals were awarded for identical results for each edition",
+       x = "Edition",
+       y = "Number of situation") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggtitle("Number of situations in which several of the same medals were awarded for identical results for each edition")
+
+```
+
+### Medallists who have won several medals of the same colour in different editions
+
+```{r}
+selected_columns2 <- medals %>%
+  select(Edition, Athlete, Discipline, Event, Medal)
+
+selected_columns3 <- selected_columns2 %>%
+  arrange(Athlete, Discipline, Edition, Medal)
+
+grouped_data <- selected_columns3 %>%
+  group_by(Athlete, Event)
+
+dup_event_participants <- grouped_data %>%
+  filter(n_distinct(Edition) > 1)
+
+grouped_data <- dup_event_participants %>%
+  group_by(Athlete, Event, Medal)
+
+filtered_participants <- grouped_data %>%
+  filter(n_distinct(Edition) > 1)
+
+grouped_data <- filtered_participants %>%
+  group_by(Athlete, Event, Medal)
+
+counted_editions <- grouped_data %>%
+  summarise(Count = n_distinct(Edition))
+
+sorted_data <- counted_editions %>%
+  arrange(desc(Count))
+
+top_participant <- sorted_data[1:5, ]
+
+winning_records <- filtered_participants %>%
+  filter(Athlete %in% top_participant$Athlete[1:5])
+
+selected_columns <- winning_records %>%
+  select(Athlete, Medal, Event)
+
+medal_counts <- winning_records %>%
+  group_by(Athlete, Event, Medal) %>%
+  summarise(MedalCount = n())
+
+medal_colors <- c("Gold" = "gold2", "Silver" = "grey", "Bronze" = "chocolate3")
+
+value_plot <- ggplot(medal_counts, aes(x = reorder(paste(Athlete, Event), -MedalCount), y = MedalCount, fill = Medal)) +
+  geom_col(width = 0.7, position = position_dodge()) +
+  geom_text(aes(label = MedalCount), vjust = -0.5, size = 4, color = "black", position = position_dodge(width = 0.7)) +
+  scale_fill_manual(values = medal_colors) +
+  labs(x = "Athlete / Cztegory", y = "Number of medals", fill = "Medal",
+       title = "Medallists who have won several medals of the same colour in different editions") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 1))
+
+print(value_plot)
+```
+
+### Countries with the highest number of female participants in the respective disciplines
+
+```{r}
+women <- medallists %>%
+  select(Edition, Discipline, Event, NOC, Gender)
+
+count_women <- medallists %>%
+  filter(Gender == "Women") %>%
+  group_by(Discipline,NOC, Event) %>%
+  summarize(Women_Count = n())
+
+count_women_sorted <- count_women %>%
+  arrange(Discipline, Event, NOC, Women_Count)
+
+top_countries <- count_women %>%
+  arrange(Discipline, Event, desc(Women_Count)) %>%
+  group_by(Discipline, Event) %>%
+  top_n(1, Women_Count)
+
+top_countries2 <- count_women %>%
+  arrange(Discipline, desc(Women_Count)) %>%
+  group_by(Discipline) %>%
+  slice_max(Women_Count)
+
+ggplot(top_countries2, aes(x = Women_Count, y = Discipline, fill = NOC)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Countries with the highest number of female participants in the respective disciplines",
+       x = "Number of women",
+       y = "Discipline") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5))
+
+```
