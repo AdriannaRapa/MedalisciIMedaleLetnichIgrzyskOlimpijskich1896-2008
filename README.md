@@ -2,7 +2,7 @@
 Projekt analizuje dane dotyczące medali i medalistów z Letnich Igrzysk Olimpijskich w latach 1896-2008. Dane zostały wyodrębnione z pliku .xlsx. Wyniki analizy to wizualizacje, które przedstawiają różne aspekty wyników olimpijskich. Projekt został stworzony ramach przedmiotu programowanie w języku R przez dwie studentki.
 
 ## 📊 Wizualizacje
-[Medaliści Letnich Igrzysk Olimpijskich w latch 1986-2008](https://github.com/AdriannaRapa/MedalisciIMedaleLetnichIgrzyskOlimpijskich1896-2008/blob/main/Plots/Medali%C5%9Bci-Letnich-Igrzysk-Olimpijskich-w-latach-1986.pdf).
+[Medaliści Letnich Igrzysk Olimpijskich w latch 1986-2008](https://github.com/AdriannaRapa/MedalisciIMedaleLetnichIgrzyskOlimpijskich1896-2008/blob/main/Plots/Medali%C5%9Bci-Letnich-Igrzysk-Olimpijskich-w-latach-1986).
 
 ### Liczba medali zdobytych przez kraje w latach 1986-2008 🌍🥇
 * Przedstawia liczbę medali zdobytych przez różne kraje na Letnich Igrzyskach Olimpijskich w latach 1986-2008.
